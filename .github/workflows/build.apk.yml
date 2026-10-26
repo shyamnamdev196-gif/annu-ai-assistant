@@ -25,13 +25,12 @@ jobs:
           channel: 'stable'
 
       - name: Generate Android Scaffolding
-        run: |
-          flutter create --project-name annu_ai_assistant --org com.example .
-          sed -i 's/repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)/repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)/g' android/settings.gradle* || true
-          echo "allprojects { repositories { maven { url 'https://maven.aliyun.com/repository/jcenter' } } }" >> android/build.gradle
+        run: flutter create --project-name annu_ai_assistant --org com.example .
 
       - name: Get Dependencies
-        run: flutter pub get
+        run: |
+          flutter pub get
+          find /home/runner/.pub-cache -name "build.gradle" -exec sed -i 's/jcenter()/mavenCentral()/g' {} +
 
       - name: Build APK
         run: flutter build apk --release

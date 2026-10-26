@@ -30,31 +30,46 @@ class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateM
   bool _isSpeaking = false;
   String _status = "Ek second... load ho raha hai ❤️";
 
-  final String _apiKey = "AQ.Ab8RN46Je0MB0a7Vc8RsNcJ51ENDBds0hbeRFZ6TzOP45NUDO4A";
-  final String _charImage = "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=1000&auto=format&fit=crop";
+  // अपनी Google AI Studio वाली API Key यहाँ डालें
+  String _apiKey = "AQ.Ab8RN46Je0MB0a7Vc8RsNcJ51ENDBds0hbeRFZ6TzOP45NUDO4A";
+
+  // एनीमे फोटो लिंक
+  final String _charImage = "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1080&auto=format&fit=crop";
 
   @override
   void initState() {
     super.initState();
     _speech = stt.SpeechToText();
     _tts = FlutterTts();
-    _initTts();
+    _initFemaleTTS();
 
     _anim = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
 
     Future.delayed(const Duration(seconds: 2), () {
-      setState(() => _status = "नमस्ते dost! मैं अन्नू हूँ। क्या बात करनी है?");
+      setState(() => _status = "नमस्ते dost! मैं अन्नू हूँ। बताओ आज क्या बात करनी है?");
       _speak(_status);
     });
   }
 
-  void _initTts() async {
+  void _initFemaleTTS() async {
     await _tts.setLanguage("hi-IN");
-    await _tts.setPitch(1.2);
-    await _tts.setSpeechRate(0.5);
+    await _tts.setPitch(1.35); // लड़की जैसी प्यारी और पतली आवाज़
+    await _tts.setSpeechRate(0.48); // नेचुरल बोलने की रफ़्तार
+    await _tts.setVolume(1.0);
+
+    // फीमेल वॉइस सेलेक्ट करने की कोशिश
+    try {
+      var voices = await _tts.getVoices;
+      for (var voice in voices) {
+        if (voice["locale"].toString().contains("hi") && voice["name"].toString().toLowerCase().contains("female")) {
+          await _tts.setVoice({"name": voice["name"], "locale": voice["locale"]});
+          break;
+        }
+      }
+    } catch (_) {}
 
     _tts.setStartHandler(() => setState(() => _isSpeaking = true));
     _tts.setCompletionHandler(() => setState(() => _isSpeaking = false));
@@ -62,7 +77,9 @@ class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateM
   }
 
   void _speak(String text) async {
-    if (text.isNotEmpty) await _tts.speak(text);
+    if (text.isNotEmpty) {
+      await _tts.speak(text);
+    }
   }
 
   void _talk() async {
@@ -75,7 +92,7 @@ class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateM
         },
         onError: (_) => setState(() {
           _isListening = false;
-          _status = "आवाज़ समझ नहीं आई";
+          _status = "आवाज़ समझ नहीं आई, फिर से बोलें";
         }),
       );
 
@@ -104,13 +121,13 @@ class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateM
     try {
       final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: _apiKey);
       final res = await model.generateContent([
-        Content.text("तुम एक प्यारी, क्यूट और केयरिंग AI दोस्त अन्नू हो। यूजर को 'dost' कहकर बहुत प्यार से और 1-2 लाइन में छोटा जवाब दो: $text")
+        Content.text("तुम्हारा नाम अन्नू है। तुम एक बेहद क्यूट, प्यारी और केयरिंग लड़की और दोस्त हो। यूजर से हिंदी या हिंग्लिश में 'dost' कहकर बहुत प्यार और आदर से बात करो। 1 या 2 छोटे वाक्यों में ही जवाब देना: $text")
       ]);
-      final reply = res.text ?? "मुझे समझ नहीं आया dost!";
+      final reply = res.text ?? "हाँजी dost, मैंने सुना!";
       setState(() => _status = reply);
       _speak(reply);
     } catch (e) {
-      setState(() => _status = "इंटरनेट चेक करें।");
+      setState(() => _status = "API Key अमान्य है या इंटरनेट धीमा है। सेटिंग्स में नई Key डालें।");
     }
   }
 
@@ -130,20 +147,44 @@ class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateM
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF4FA5F7), Color(0xFF1E88E5)])),
-              child: Column(
+            DrawerHeader(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(colors: [Color(0xFF4FA5F7), Color(0xFF1E88E5)]),
+              ),
+              child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  CircleAvatar(radius: 26, backgroundColor: Colors.white24, child: Icon(Icons.auto_awesome, color: Colors.white)),
-                  SizedBox(height: 8),
-                  Text("Annu AI", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  CircleAvatar(radius: 28, backgroundColor: Colors.white24, child: Icon(Icons.favorite, color: Colors.pinkAccent, size: 28)),
+                  SizedBox(height: 10),
+                  Text("Annu AI", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text("Tumhari personal dost", style: TextStyle(color: Colors.white70, fontSize: 12)),
                 ],
               ),
             ),
-            ListTile(leading: const Icon(Icons.home), title: const Text("Home"), onTap: () => Navigator.pop(context)),
-            ListTile(leading: const Icon(Icons.settings), title: const Text("Settings"), onTap: () => Navigator.pop(context)),
+            ListTile(
+              leading: const Icon(Icons.home_rounded, color: Color(0xFF1E88E5)),
+              title: const Text("Home", style: TextStyle(fontWeight: FontWeight.bold)),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings, color: Color(0xFF475569)),
+              title: const Text("Settings & API Key", style: TextStyle(fontWeight: FontWeight.bold)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AnnuSettingsScreen(
+                      currentKey: _apiKey,
+                      onKeyUpdated: (newKey) {
+                        setState(() => _apiKey = newKey);
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -159,7 +200,7 @@ class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateM
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.35),
+                    Colors.black.withOpacity(0.3),
                     const Color(0xFF0F0C20).withOpacity(0.85),
                   ],
                 ),
@@ -183,8 +224,18 @@ class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateM
                         style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 4),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.notifications_none, color: Colors.white, size: 28),
-                        onPressed: () {},
+                        icon: const Icon(Icons.settings, color: Colors.white, size: 26),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AnnuSettingsScreen(
+                                currentKey: _apiKey,
+                                onKeyUpdated: (newKey) => setState(() => _apiKey = newKey),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -193,35 +244,35 @@ class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateM
                 AnimatedBuilder(
                   animation: _anim,
                   builder: (context, child) {
-                    double scale = (_isListening || _isSpeaking) ? (1.0 + _anim.value * 0.15) : 1.0;
+                    double scale = (_isListening || _isSpeaking) ? (1.0 + _anim.value * 0.2) : 1.0;
                     return Transform.scale(
                       scale: scale,
                       child: Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
                               color: _isSpeaking
-                                  ? Colors.purpleAccent.withOpacity(0.7)
-                                  : (_isListening ? Colors.blueAccent.withOpacity(0.7) : Colors.transparent),
-                              blurRadius: 30,
-                              spreadRadius: 10,
+                                  ? Colors.purpleAccent.withOpacity(0.8)
+                                  : (_isListening ? Colors.blueAccent.withOpacity(0.8) : Colors.transparent),
+                              blurRadius: 35,
+                              spreadRadius: 12,
                             ),
                           ],
                         ),
-                        child: const Icon(Icons.favorite, color: Colors.pinkAccent, size: 36),
+                        child: const Icon(Icons.favorite, color: Colors.pinkAccent, size: 42),
                       ),
                     );
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
+                      color: Colors.black.withOpacity(0.65),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: Colors.white24),
                     ),
@@ -238,7 +289,7 @@ class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateM
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withOpacity(0.18),
                       borderRadius: BorderRadius.circular(30),
                       border: Border.all(color: Colors.white30),
                     ),
@@ -281,6 +332,79 @@ class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateM
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class AnnuSettingsScreen extends StatefulWidget {
+  final String currentKey;
+  final Function(String) onKeyUpdated;
+
+  const AnnuSettingsScreen({super.key, required this.currentKey, required this.onKeyUpdated});
+
+  @override
+  State<AnnuSettingsScreen> createState() => _AnnuSettingsScreenState();
+}
+
+class _AnnuSettingsScreenState extends State<AnnuSettingsScreen> {
+  late TextEditingController _keyController;
+
+  @override
+  void initState() {
+    super.initState();
+    _keyController = TextEditingController(text: widget.currentKey);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F0C20),
+      appBar: AppBar(
+        title: const Text("Settings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Gemini API Key", style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _keyController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white12,
+                hintText: "Enter AI Studio Key (AIzaSy...)",
+                hintStyle: const TextStyle(color: Colors.white38),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purpleAccent,
+                  shape: BorderRadius.circular(14),
+                ),
+                onPressed: () {
+                  widget.onKeyUpdated(_keyController.text.trim());
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("API Key सेव हो गई!")),
+                  );
+                  Navigator.pop(context);
+                },
+                child: const Text("Save Key", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

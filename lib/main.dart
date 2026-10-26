@@ -30,7 +30,8 @@ class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateM
   bool _isSpeaking = false;
   String _status = "Ek second... load ho raha hai ❤️";
 
-  String _apiKey = "AQ.Ab8RN46Je0MB0a7Vc8RsNcJ51ENDBds0hbeRFZ6TzOP45NUDO4A";
+  // 👇 यहाँ बीच में अपनी नई AQ... वाली Key पेस्ट करें 👇
+  String _apiKey = "AQ.Ab8RN6KEFafQ8lXO4BIGSzf6hQy8KqycSVzhptIqMsMb3wf_Dg";
 
   final String _charImage = "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1080&auto=format&fit=crop";
 
@@ -116,7 +117,8 @@ class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateM
   void _askAI(String text) async {
     setState(() => _status = "अन्नू सोच रही है...");
     try {
-      final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: _apiKey);
+      final cleanKey = _apiKey.trim();
+      final model = GenerativeModel(model: 'gemini-1.5-flash-latest', apiKey: cleanKey);
       final res = await model.generateContent([
         Content.text("तुम्हारा नाम अन्नू है। तुम एक बेहद क्यूट, प्यारी और केयरिंग लड़की और दोस्त हो। यूजर से हिंदी या हिंग्लिश में 'dost' कहकर बहुत प्यार और आदर से बात करो। 1 या 2 छोटे वाक्यों में ही जवाब देना: $text")
       ]);
@@ -124,7 +126,7 @@ class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateM
       setState(() => _status = reply);
       _speak(reply);
     } catch (e) {
-      setState(() => _status = "API Key अमान्य है या इंटरनेट धीमा है। सेटिंग्स में नई Key डालें।");
+      setState(() => _status = "Error: $e");
     }
   }
 
@@ -376,7 +378,7 @@ class _AnnuSettingsScreenState extends State<AnnuSettingsScreen> {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white12,
-                hintText: "Enter AI Studio Key (AIzaSy...)",
+                hintText: "Enter AI Studio Key",
                 hintStyle: const TextStyle(color: Colors.white38),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
               ),

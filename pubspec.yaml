@@ -1,19 +1,22 @@
-name: annu_ai
-description: Annu AI Voice Assistant
-
-publish_to: 'none'
+name: annu_ai_assistant
+description: "Annu AI Assistant Flutter App"
+publish_to: "none"
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.2.0
-  cupertino_icons: ^1.0.6
-  speech_to_text: ^6.6.0
+  speech_to_text: ^6.6.2
   audioplayers: ^6.0.0
+  google_generative_ai: ^0.4.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true

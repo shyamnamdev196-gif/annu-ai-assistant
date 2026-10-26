@@ -1,24 +1,23 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:audioplayers/audioplayers.dart';
-import 'package:http/http.dart' as http;
+import 'package:google_generative_ai/google_generative_ai.dart';
 
 void main() {
-  runApp(const AnnuApp());
+  runApp(const MyApp());
 }
 
-class AnnuApp extends StatelessWidget {
-  const AnnuApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Annu AI Assistant',
       debugShowCheckedModeBanner: false,
-      title: 'ANNU AI',
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F0B1E),
+        primarySwatch: Colors.deepPurple,
       ),
       home: const ChatScreen(),
     );
@@ -42,9 +41,9 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
   String _userSpokenText = "";
 
   // ==========================================
-  // 👇 यहाँ बीच में अपनी कॉपी की हुई Key पेस्ट करें 👇
+  // आपकी Gemini API Key
   // ==========================================
-  final String _geminiApiKey = "AQ.Ab8RN6JeOWB0a7Vc8RsNcJ51ENDBds0hbeRFZ6TzOP45NJDO4A"
+  final String _geminiApiKey = "AQ.Ab8RN46Je0MB0a7Vc8RsNcJ51ENDBds0hbeRFZ6TzOP45NUDO4A";
 
   @override
   void initState() {
@@ -98,57 +97,23 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
     }
   }
 
-  Future<void> _askGemini(String question) async {
-    setState(() => _statusText = "अन्नू सोच रही है...");
+  void _askGemini(String prompt) async {
+    setState(() {
+      _statusText = "अन्नू सोच रही है...";
+    });
 
     try {
-      final url = Uri.parse(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$_geminiApiKey");
+      final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: _geminiApiKey);
+      final content = [Content.text("तुम एक प्यारी और मददगार AI असिस्टेंट हो जिसका नाम अन्नू है। हिंदी में दोस्ताना और छोटा जवाब दो: $prompt")];
+      final response = await model.generateContent(content);
 
-      final response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "system_instruction": {
-            "parts": [
-              {
-                "text":
-                    "तुम्हारा नाम अन्नू (Annu) है। तुम एक बहुत प्यारी, रोमांटिक, समझदार और केयरिंग AI दोस्त हो। हमेशा प्यार भरे हिंदी/हिंग्लिश में सिर्फ 1-2 लाइनों में छोटे और प्यारे जवाब दो।"
-              }
-            ]
-          },
-          "contents": [
-            {
-              "parts": [
-                {"text": question}
-              ]
-            }
-          ]
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(response.bodyBytes));
-        String reply = data['candidates'][0]['content']['parts'][0]['text'];
-        setState(() => _statusText = reply);
-        _playSweetVoice(reply);
-      } else {
-        setState(() => _statusText = "जवाब देने में समस्या आई।");
-      }
+      setState(() {
+        _statusText = response.text ?? "माफ़ करना, मैं समझ नहीं पाई।";
+      });
     } catch (e) {
-      setState(() => _statusText = "इंटरनेट कनेक्शन चेक करें।");
-    }
-  }
-
-  void _playSweetVoice(String text) async {
-    try {
-      String cleanText = Uri.encodeComponent(text);
-      String audioUrl =
-          "https://translate.google.com/translate_tts?ie=UTF-8&q=$cleanText&tl=hi&client=tw-ob";
-      await _audioPlayer.stop();
-      await _audioPlayer.play(UrlSource(audioUrl));
-    } catch (e) {
-      // Audio error
+      setState(() {
+        _statusText = "कुछ गड़बड़ हो गई, दोबारा कोशिश करें।";
+      });
     }
   }
 
@@ -163,109 +128,71 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F0C20),
       appBar: AppBar(
+        title: const Text('Annu AI Assistant'),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'ANNU AI',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
-            color: Colors.white,
-          ),
-        ),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const Spacer(),
-            Center(
-              child: AnimatedBuilder(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedBuilder(
                 animation: _controller,
                 builder: (context, child) {
                   return Container(
-                    width: 180 + (_controller.value * 20),
-                    height: 180 + (_controller.value * 20),
+                    width: _isListening ? 140 + (_controller.value * 25) : 120,
+                    height: _isListening ? 140 + (_controller.value * 25) : 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
+                      gradient: const RadialGradient(
+                        colors: [Colors.purpleAccent, Colors.deepPurple],
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFFF2A85).withOpacity(0.5),
-                          blurRadius: 40 + (_controller.value * 20),
-                          spreadRadius: 10,
+                          color: Colors.purpleAccent.withOpacity(0.5),
+                          blurRadius: _isListening ? 35 : 15,
+                          spreadRadius: _isListening ? 10 : 2,
                         ),
                       ],
-                      gradient: const RadialGradient(
-                        colors: [
-                          Color(0xFFFF529A),
-                          Color(0xFF8B1253),
-                          Color(0xFF1B0727),
-                        ],
-                      ),
                     ),
-                    child: const Center(
-                      child: Text(
-                        'A',
-                        style: TextStyle(
-                          fontSize: 60,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
+                    child: const Icon(Icons.auto_awesome, size: 55, color: Colors.white),
                   );
                 },
               ),
-            ),
-            const SizedBox(height: 30),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                _statusText,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
+              const SizedBox(height: 40),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Text(
+                  _statusText,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 18, color: Colors.white70, height: 1.4),
                 ),
               ),
-            ),
-            const Spacer(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: _listen,
-                    child: Container(
-                      padding: const EdgeInsets.all(22),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _isListening
-                            ? const Color(0xFFFF2A85)
-                            : const Color(0xFF231834),
-                        boxShadow: [
-                          if (_isListening)
-                            const BoxShadow(
-                              color: Color(0xFFFF2A85),
-                              blurRadius: 25,
-                              spreadRadius: 4,
-                            ),
-                        ],
-                      ),
-                      child: Icon(
-                        _isListening ? Icons.mic : Icons.mic_none,
-                        color: Colors.white,
-                        size: 36,
-                      ),
-                    ),
+              const SizedBox(height: 50),
+              GestureDetector(
+                onTap: _listen,
+                child: CircleAvatar(
+                  radius: 36,
+                  backgroundColor: _isListening ? Colors.redAccent : Colors.deepPurpleAccent,
+                  child: Icon(
+                    _isListening ? Icons.mic : Icons.mic_none,
+                    size: 36,
+                    color: Colors.white,
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

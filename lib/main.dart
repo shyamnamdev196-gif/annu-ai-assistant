@@ -30,10 +30,8 @@ class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateM
   bool _isSpeaking = false;
   String _status = "Ek second... load ho raha hai ❤️";
 
-  // अपनी Google AI Studio वाली API Key यहाँ डालें
   String _apiKey = "AQ.Ab8RN46Je0MB0a7Vc8RsNcJ51ENDBds0hbeRFZ6TzOP45NUDO4A";
 
-  // एनीमे फोटो लिंक
   final String _charImage = "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1080&auto=format&fit=crop";
 
   @override
@@ -56,11 +54,10 @@ class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateM
 
   void _initFemaleTTS() async {
     await _tts.setLanguage("hi-IN");
-    await _tts.setPitch(1.35); // लड़की जैसी प्यारी और पतली आवाज़
-    await _tts.setSpeechRate(0.48); // नेचुरल बोलने की रफ़्तार
+    await _tts.setPitch(1.35);
+    await _tts.setSpeechRate(0.48);
     await _tts.setVolume(1.0);
 
-    // फीमेल वॉइस सेलेक्ट करने की कोशिश
     try {
       var voices = await _tts.getVoices;
       for (var voice in voices) {
@@ -391,7 +388,7 @@ class _AnnuSettingsScreenState extends State<AnnuSettingsScreen> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.purpleAccent,
-                  shape: BorderRadius.circular(14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 onPressed: () {
                   widget.onKeyUpdated(_keyController.text.trim());

@@ -22,11 +22,13 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.22.2'
           channel: 'stable'
 
       - name: Generate Android Scaffolding
         run: |
           flutter create --org com.example .
+          sed -i 's/repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)/repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)/g' android/settings.gradle* || true
           echo "allprojects { repositories { maven { url 'https://maven.aliyun.com/repository/jcenter' } } }" >> android/build.gradle
 
       - name: Get Dependencies

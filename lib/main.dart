@@ -1,93 +1,95 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const MaterialApp(
+    title: 'Annu AI Assistant',
+    debugShowCheckedModeBanner: false,
+    home: AnnuScreen(),
+  ));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class AnnuScreen extends StatefulWidget {
+  const AnnuScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Annu AI Assistant',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primarySwatch: Colors.deepPurple,
-      ),
-      home: const ChatScreen(),
-    );
-  }
+  State<AnnuScreen> createState() => _AnnuScreenState();
 }
 
-class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+class _AnnuScreenState extends State<AnnuScreen> with SingleTickerProviderStateMixin {
+  final GlobalKey<ScaffoldState> _key = GlobalKey<ScaffoldState>();
+  final TextEditingController _input = TextEditingController();
 
-  @override
-  State<ChatScreen> createState() => _ChatScreenState();
-}
-
-class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
   late stt.SpeechToText _speech;
-  late AudioPlayer _audioPlayer;
+  late FlutterTts _tts;
+  late AnimationController _anim;
 
   bool _isListening = false;
-  String _statusText = "माइक दबाकर अन्नू से बात करें";
-  String _userSpokenText = "";
+  bool _isSpeaking = false;
+  String _status = "Ek second... load ho raha hai ❤️";
 
-  // ==========================================
-  // आपकी Gemini API Key
-  // ==========================================
-  final String _geminiApiKey = "AQ.Ab8RN46Je0MB0a7Vc8RsNcJ51ENDBds0hbeRFZ6TzOP45NUDO4A";
+  final String _apiKey = "AQ.Ab8RN46Je0MB0a7Vc8RsNcJ51ENDBds0hbeRFZ6TzOP45NUDO4A";
+  final String _charImage = "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=1000&auto=format&fit=crop";
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _speech = stt.SpeechToText();
+    _tts = FlutterTts();
+    _initTts();
+
+    _anim = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: const Duration(milliseconds: 1000),
     )..repeat(reverse: true);
 
-    _speech = stt.SpeechToText();
-    _audioPlayer = AudioPlayer();
+    Future.delayed(const Duration(seconds: 2), () {
+      setState(() => _status = "नमस्ते dost! मैं अन्नू हूँ। क्या बात करनी है?");
+      _speak(_status);
+    });
   }
 
-  void _listen() async {
+  void _initTts() async {
+    await _tts.setLanguage("hi-IN");
+    await _tts.setPitch(1.2);
+    await _tts.setSpeechRate(0.5);
+
+    _tts.setStartHandler(() => setState(() => _isSpeaking = true));
+    _tts.setCompletionHandler(() => setState(() => _isSpeaking = false));
+    _tts.setErrorHandler((_) => setState(() => _isSpeaking = false));
+  }
+
+  void _speak(String text) async {
+    if (text.isNotEmpty) await _tts.speak(text);
+  }
+
+  void _talk() async {
+    if (_isSpeaking) await _tts.stop();
+
     if (!_isListening) {
-      bool available = await _speech.initialize(
-        onStatus: (status) {
-          if (status == "done" || status == "notListening") {
-            setState(() => _isListening = false);
-            if (_userSpokenText.isNotEmpty) {
-              _askGemini(_userSpokenText);
-            }
-          }
+      bool ok = await _speech.initialize(
+        onStatus: (s) {
+          if (s == "done" || s == "notListening") setState(() => _isListening = false);
         },
-        onError: (error) => setState(() {
+        onError: (_) => setState(() {
           _isListening = false;
-          _statusText = "आवाज़ समझ नहीं आई, फिर से कहें";
+          _status = "आवाज़ समझ नहीं आई";
         }),
       );
 
-      if (available) {
+      if (ok) {
         setState(() {
           _isListening = true;
-          _statusText = "सुन रही हूँ...";
-          _userSpokenText = "";
+          _status = "सुन रही हूँ...";
         });
-
         _speech.listen(
           localeId: "hi_IN",
-          onResult: (val) {
-            setState(() {
-              _userSpokenText = val.recognizedWords;
-              _statusText = val.recognizedWords;
-            });
+          onResult: (res) {
+            if (res.recognizedWords.isNotEmpty) {
+              _askAI(res.recognizedWords);
+            }
           },
         );
       }
@@ -97,103 +99,188 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
     }
   }
 
-  void _askGemini(String prompt) async {
-    setState(() {
-      _statusText = "अन्नू सोच रही है...";
-    });
-
+  void _askAI(String text) async {
+    setState(() => _status = "अन्नू सोच रही है...");
     try {
-      final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: _geminiApiKey);
-      final content = [Content.text("तुम एक प्यारी और मददगार AI असिस्टेंट हो जिसका नाम अन्नू है। हिंदी में दोस्ताना और छोटा जवाब दो: $prompt")];
-      final response = await model.generateContent(content);
-
-      setState(() {
-        _statusText = response.text ?? "माफ़ करना, मैं समझ नहीं पाई।";
-      });
+      final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: _apiKey);
+      final res = await model.generateContent([
+        Content.text("तुम एक प्यारी, क्यूट और केयरिंग AI दोस्त अन्नू हो। यूजर को 'dost' कहकर बहुत प्यार से और 1-2 लाइन में छोटा जवाब दो: $text")
+      ]);
+      final reply = res.text ?? "मुझे समझ नहीं आया dost!";
+      setState(() => _status = reply);
+      _speak(reply);
     } catch (e) {
-      setState(() {
-        _statusText = "कुछ गड़बड़ हो गई, दोबारा कोशिश करें।";
-      });
+      setState(() => _status = "इंटरनेट चेक करें।");
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _anim.dispose();
+    _tts.stop();
     _speech.stop();
-    _audioPlayer.dispose();
     super.dispose();
   }
-
-  @override
+    @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0C20),
-      appBar: AppBar(
-        title: const Text('Annu AI Assistant'),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      key: _key,
+      drawer: Drawer(
+        backgroundColor: const Color(0xFFF1F5FB),
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF4FA5F7), Color(0xFF1E88E5)])),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  CircleAvatar(radius: 26, backgroundColor: Colors.white24, child: Icon(Icons.auto_awesome, color: Colors.white)),
+                  SizedBox(height: 8),
+                  Text("Annu AI", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+            ListTile(leading: const Icon(Icons.home), title: const Text("Home"), onTap: () => Navigator.pop(context)),
+            ListTile(leading: const Icon(Icons.settings), title: const Text("Settings"), onTap: () => Navigator.pop(context)),
+          ],
+        ),
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedBuilder(
-                animation: _controller,
-                builder: (context, child) {
-                  return Container(
-                    width: _isListening ? 140 + (_controller.value * 25) : 120,
-                    height: _isListening ? 140 + (_controller.value * 25) : 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const RadialGradient(
-                        colors: [Colors.purpleAccent, Colors.deepPurple],
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.network(_charImage, fit: BoxFit.cover),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.35),
+                    const Color(0xFF0F0C20).withOpacity(0.85),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.menu, color: Colors.white, size: 28),
+                        onPressed: () => _key.currentState?.openDrawer(),
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.purpleAccent.withOpacity(0.5),
-                          blurRadius: _isListening ? 35 : 15,
-                          spreadRadius: _isListening ? 10 : 2,
+                      const Text(
+                        "ANNU",
+                        style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 4),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.notifications_none, color: Colors.white, size: 28),
+                        onPressed: () {},
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                AnimatedBuilder(
+                  animation: _anim,
+                  builder: (context, child) {
+                    double scale = (_isListening || _isSpeaking) ? (1.0 + _anim.value * 0.15) : 1.0;
+                    return Transform.scale(
+                      scale: scale,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: _isSpeaking
+                                  ? Colors.purpleAccent.withOpacity(0.7)
+                                  : (_isListening ? Colors.blueAccent.withOpacity(0.7) : Colors.transparent),
+                              blurRadius: 30,
+                              spreadRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.favorite, color: Colors.pinkAccent, size: 36),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Text(
+                      _status,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.4, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: Colors.white30),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _input,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: const InputDecoration(
+                              hintText: "Annu se baat karein...",
+                              hintStyle: TextStyle(color: Colors.white60),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.only(left: 12),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.send_rounded, color: Colors.pinkAccent),
+                          onPressed: () {
+                            if (_input.text.isNotEmpty) {
+                              _askAI(_input.text);
+                              _input.clear();
+                            }
+                          },
+                        ),
+                        GestureDetector(
+                          onTap: _talk,
+                          child: CircleAvatar(
+                            backgroundColor: _isListening ? Colors.redAccent : Colors.purpleAccent,
+                            child: Icon(_isListening ? Icons.mic : Icons.mic_none, color: Colors.white),
+                          ),
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.auto_awesome, size: 55, color: Colors.white),
-                  );
-                },
-              ),
-              const SizedBox(height: 40),
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white12),
-                ),
-                child: Text(
-                  _statusText,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 18, color: Colors.white70, height: 1.4),
-                ),
-              ),
-              const SizedBox(height: 50),
-              GestureDetector(
-                onTap: _listen,
-                child: CircleAvatar(
-                  radius: 36,
-                  backgroundColor: _isListening ? Colors.redAccent : Colors.deepPurpleAccent,
-                  child: Icon(
-                    _isListening ? Icons.mic : Icons.mic_none,
-                    size: 36,
-                    color: Colors.white,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

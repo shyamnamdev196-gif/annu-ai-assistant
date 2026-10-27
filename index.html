@@ -191,14 +191,16 @@
 
   <div class="modal" id="settingsModal">
     <div class="modal-box">
-      <h3>Gemini API Key</h3>
-      <input type="text" id="keyInput" placeholder="API Key yahan dalein">
+      <h3>Groq API Key</h3>
+      <input type="text" id="keyInput" placeholder="gsk_ wali key dalein">
       <button onclick="saveKey()">Save Key</button>
     </div>
   </div>
     <script>
-    // Agar direct code me key dalni ho to quotes ke andar daal sakte hain
-    let apiKey = localStorage.getItem("annu_key") || "AQ.Ab8RN46Je0MB0a7Vc8RsNcJ51ENDBds0hbeRFZ6TzOP45NUDO4A";
+    // 👇👇 YAHAN APNI gsk_ WALI KEY QUOTES KE ANDAR PASTE KAR DO 👇👇
+    let hardcodedKey = "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";
+    
+    let apiKey = localStorage.getItem("annu_key") || hardcodedKey;
     let isListening = false;
 
     const statusEl = document.getElementById("statusText");
@@ -244,7 +246,7 @@
       recognition.onresult = (e) => {
         const text = e.results[0][0].transcript;
         statusEl.innerText = text;
-        askGemini(text);
+        askGroq(text);
       };
 
       recognition.onend = () => {
@@ -261,7 +263,7 @@
 
     function toggleVoice() {
       if (!recognition) {
-        alert("Aapka browser voice support nahi karta. Please Chrome use karein.");
+        alert("Aapka browser voice support nahi karta. Chrome use karein.");
         return;
       }
       if (isListening) {
@@ -277,17 +279,19 @@
       if (!val) return;
       input.value = "";
       statusEl.innerText = val;
-      askGemini(val);
+      askGroq(val);
     }
 
     document.getElementById("userInput").addEventListener("keydown", (e) => {
       if (e.key === "Enter") handleSend();
     });
 
-    // 3. Gemini Pro API Connection
-    async function askGemini(text) {
-      if (!apiKey) {
-        statusEl.innerText = "Kripya upar ⚙️ settings me API Key dalein!";
+    // 3. Groq API Connection
+    async function askGroq(text) {
+      const activeKey = apiKey && apiKey !== "YAHAN_APNI_gsk_KEY_PEST_KAREIN" ? apiKey.trim() : "";
+      
+      if (!activeKey) {
+        statusEl.innerText = "Kripya upar ⚙️ settings me apni Groq Key dalein!";
         openSettings();
         return;
       }
@@ -295,25 +299,26 @@
       statusEl.innerText = "अन्नू सोच रही है...";
 
       try {
-        const prompt = `तुम्हारा नाम अन्नू है। तुम एक बेहद क्यूट, प्यारी और केयरिंग दोस्त हो। यूजर से हिंदी में 'dost' कहकर 1-2 छोटे और मीठे वाक्यों में जवाब दो: ${text}`;
-        const cleanKey = apiKey.trim();
-
-        // Gemini-pro endpoint configuration
-        const url = cleanKey.startsWith("AQ")
-          ? "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
-          : `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${cleanKey}`;
-
-        const headers = { "Content-Type": "application/json" };
-        if (cleanKey.startsWith("AQ")) {
-          headers["x-goog-api-key"] = cleanKey;
-          headers["Authorization"] = `Bearer ${cleanKey}`;
-        }
-
-        const res = await fetch(url, {
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
-          headers: headers,
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${activeKey}`
+          },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
+            model: "llama-3.1-8b-instant",
+            messages: [
+              {
+                role: "system",
+                content: "तुम्हारा नाम अन्नू है। तुम एक बेहद क्यूट, प्यारी और केयरिंग दोस्त हो। यूजर से हिंदी में 'dost' कहकर 1-2 छोटे और मीठे वाक्यों में जवाब दो।"
+              },
+              {
+                role: "user",
+                content: text
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 150
           })
         });
 
@@ -323,25 +328,28 @@
           return;
         }
 
-        const reply = data.candidates[0].content.parts[0].text;
+        const reply = data.choices[0].message.content;
         statusEl.innerText = reply;
         speak(reply);
       } catch (err) {
-        statusEl.innerText = "Network me samasya aayi! Dobara koshish karein.";
+        statusEl.innerText = "Network me dikkat aayi! Dobara koshish karein.";
       }
     }
 
-    // 4. Settings Popup Controls
+    // 4. Settings Popup
     function openSettings() {
-      document.getElementById("keyInput").value = apiKey;
+      document.getElementById("keyInput").value = apiKey !== "YAHAN_APNI_gsk_KEY_PEST_KAREIN" ? apiKey : "";
       document.getElementById("settingsModal").style.display = "flex";
     }
 
     function saveKey() {
-      apiKey = document.getElementById("keyInput").value.trim();
-      localStorage.setItem("annu_key", apiKey);
+      const inputVal = document.getElementById("keyInput").value.trim();
+      if (inputVal) {
+        apiKey = inputVal;
+        localStorage.setItem("annu_key", apiKey);
+        statusEl.innerText = "Key save ho gayi! Ab baat karein.";
+      }
       document.getElementById("settingsModal").style.display = "none";
-      statusEl.innerText = "Key save ho gayi! Ab baat karein.";
     }
 
     window.onclick = function(e) {

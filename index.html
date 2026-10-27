@@ -119,9 +119,86 @@
       color: white;
       transition: 0.2s;
     }
-    .send-
-      <script>
-    // 👇 यहाँ अपनी नई gsk_ वाली Key डालें 👇
+    .send-btn { background: #ff4081; }
+    .mic-btn { background: #7c4dff; }
+    .mic-btn.listening {
+      background: #f44336;
+      animation: micPulse 1s infinite alternate;
+    }
+    @keyframes micPulse {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.12); }
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 99;
+    }
+    .modal-box {
+      background: #1a162b;
+      padding: 24px;
+      border-radius: 16px;
+      width: 85%;
+      max-width: 380px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .modal-box h3 { margin-bottom: 12px; }
+    .modal-box input {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      margin-bottom: 16px;
+      outline: none;
+    }
+    .modal-box button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      background: #ff4081;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>ANNU AI</h1>
+    <button class="gear-btn" onclick="openSettings()">⚙️</button>
+  </header>
+
+  <div class="main-content">
+    <div class="avatar-wrapper" id="avatarWrapper">
+      <img class="avatar" src="https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1080&auto=format&fit=crop" alt="Annu">
+    </div>
+    <div class="status-card" id="statusText">नमस्ते dost! मैं अन्नू हूँ। बताओ आज क्या बात करनी है? ❤️</div>
+  </div>
+
+  <div class="input-bar">
+    <input type="text" id="userInput" placeholder="अन्नू से बात करें...">
+    <button class="send-btn" onclick="handleSend()">➤</button>
+    <button class="mic-btn" id="micBtn" onclick="toggleVoice()">🎤</button>
+  </div>
+
+  <div class="modal" id="settingsModal">
+    <div class="modal-box">
+      <h3>Groq API Key</h3>
+      <input type="text" id="keyInput" placeholder="gsk_ वाली Key डालें">
+      <button onclick="saveKey()">Save Key</button>
+    </div>
+  </div>
+
+  <script>
     let hardcodedKey = "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";
     
     let apiKey = localStorage.getItem("annu_key") || hardcodedKey;
@@ -131,7 +208,6 @@
     const avatarEl = document.getElementById("avatarWrapper");
     const micBtn = document.getElementById("micBtn");
 
-    // 1. Text To Speech (Voice output)
     function speak(text) {
       if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
@@ -152,7 +228,6 @@
       window.speechSynthesis.speak(utterance);
     }
 
-    // 2. Speech Recognition (Mic input)
     let recognition;
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -210,7 +285,6 @@
       if (e.key === "Enter") handleSend();
     });
 
-    // 3. Groq API Connection (Only Active Llama-3.1-8b)
     async function askGroq(text) {
       const activeKey = apiKey && apiKey !== "YAHAN_APNI_gsk_KEY_PEST_KAREIN" ? apiKey.trim() : "";
       
@@ -259,7 +333,6 @@
       }
     }
 
-    // 4. Settings Popup
     function openSettings() {
       document.getElementById("keyInput").value = apiKey !== "YAHAN_APNI_gsk_KEY_PEST_KAREIN" ? apiKey : "";
       document.getElementById("settingsModal").style.display = "flex";
@@ -283,4 +356,3 @@
   </script>
 </body>
 </html>
-    

@@ -118,12 +118,8 @@
       color: white;
       transition: 0.2s;
     }
-    .send-btn {
-      background: #ff4081;
-    }
-    .mic-btn {
-      background: #7c4dff;
-    }
+    .send-btn { background: #ff4081; }
+    .mic-btn { background: #7c4dff; }
     .mic-btn.listening {
       background: #f44336;
       animation: micPulse 1s infinite alternate;
@@ -132,7 +128,6 @@
       0% { transform: scale(1); }
       100% { transform: scale(1.12); }
     }
-    /* Settings Popup */
     .modal {
       display: none;
       position: fixed;
@@ -197,12 +192,12 @@
   <div class="modal" id="settingsModal">
     <div class="modal-box">
       <h3>Gemini API Key</h3>
-      <input type="text" id="keyInput" placeholder="अपनी API Key पेस्ट करें">
+      <input type="text" id="keyInput" placeholder="API Key yahan dalein">
       <button onclick="saveKey()">Save Key</button>
     </div>
   </div>
     <script>
-    // डिफ़ॉल्ट Key पहले से सेट है
+    // Agar direct code me key dalni ho to quotes ke andar daal sakte hain
     let apiKey = localStorage.getItem("annu_key") || "AQ.Ab8RN46Je0MB0a7Vc8RsNcJ51ENDBds0hbeRFZ6TzOP45NUDO4A";
     let isListening = false;
 
@@ -210,7 +205,7 @@
     const avatarEl = document.getElementById("avatarWrapper");
     const micBtn = document.getElementById("micBtn");
 
-    // 1. Text To Speech (लड़की जैसी आवाज़)
+    // 1. Text To Speech (Voice output)
     function speak(text) {
       if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
@@ -231,7 +226,7 @@
       window.speechSynthesis.speak(utterance);
     }
 
-    // 2. Speech Recognition (माइक से सुनना)
+    // 2. Speech Recognition (Mic input)
     let recognition;
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -266,7 +261,7 @@
 
     function toggleVoice() {
       if (!recognition) {
-        alert("आपका ब्राउज़र वॉइस सपोर्ट नहीं करता। कृपया Chrome का उपयोग करें।");
+        alert("Aapka browser voice support nahi karta. Please Chrome use karein.");
         return;
       }
       if (isListening) {
@@ -289,10 +284,10 @@
       if (e.key === "Enter") handleSend();
     });
 
-    // 3. Gemini API कनेक्शन
+    // 3. Gemini Pro API Connection
     async function askGemini(text) {
       if (!apiKey) {
-        statusEl.innerText = "कृपया पहले ऊपर ⚙️ में अपनी API Key डालें!";
+        statusEl.innerText = "Kripya upar ⚙️ settings me API Key dalein!";
         openSettings();
         return;
       }
@@ -300,11 +295,23 @@
       statusEl.innerText = "अन्नू सोच रही है...";
 
       try {
-        const prompt = `तुम्हारा नाम अन्नू है। तुम एक बेहद क्यूट, प्यारी और केयरिंग दोस्त हो। यूजर से हिंदी या हिंग्लिश में 'dost' कहकर 1-2 छोटे और प्यारे वाक्यों में जवाब दो: ${text}`;
-        
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        const prompt = `तुम्हारा नाम अन्नू है। तुम एक बेहद क्यूट, प्यारी और केयरिंग दोस्त हो। यूजर से हिंदी में 'dost' कहकर 1-2 छोटे और मीठे वाक्यों में जवाब दो: ${text}`;
+        const cleanKey = apiKey.trim();
+
+        // Gemini-pro endpoint configuration
+        const url = cleanKey.startsWith("AQ")
+          ? "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+          : `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${cleanKey}`;
+
+        const headers = { "Content-Type": "application/json" };
+        if (cleanKey.startsWith("AQ")) {
+          headers["x-goog-api-key"] = cleanKey;
+          headers["Authorization"] = `Bearer ${cleanKey}`;
+        }
+
+        const res = await fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: headers,
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }]
           })
@@ -320,11 +327,11 @@
         statusEl.innerText = reply;
         speak(reply);
       } catch (err) {
-        statusEl.innerText = "नेटवर्क में समस्या आई! दोबारा प्रयास करें।";
+        statusEl.innerText = "Network me samasya aayi! Dobara koshish karein.";
       }
     }
 
-    // 4. Settings
+    // 4. Settings Popup Controls
     function openSettings() {
       document.getElementById("keyInput").value = apiKey;
       document.getElementById("settingsModal").style.display = "flex";
@@ -334,7 +341,7 @@
       apiKey = document.getElementById("keyInput").value.trim();
       localStorage.setItem("annu_key", apiKey);
       document.getElementById("settingsModal").style.display = "none";
-      statusEl.innerText = "Key सेव हो गई! अब बात करें।";
+      statusEl.innerText = "Key save ho gayi! Ab baat karein.";
     }
 
     window.onclick = function(e) {

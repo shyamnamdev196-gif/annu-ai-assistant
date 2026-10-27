@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Annu AI Assistant</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background: radial-gradient(circle at top, #2b102b, #0f0c20);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: white;
+      overflow-x: hidden;
+    }
+    header {
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+    }
+    header h1 {
+      font-size: 22px;
+      letter-spacing: 3px;
+      font-weight: 800;
+      color: #ff77a9;
+    }
+    .gear-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #fff;
+    }
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      text-align: center;
+      flex-grow: 1;
+      justify-content: center;
+    }
+    .avatar-wrapper {
+      position: relative;
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      padding: 6px;
+      background: linear-gradient(45deg, #ff4081, #7c4dff);
+      box-shadow: 0 0 25px rgba(255, 64, 129, 0.5);
+      margin-bottom: 24px;
+      transition: transform 0.3s ease;
+    }
+    .avatar-wrapper.speaking {
+      animation: pulse 1s infinite alternate;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); box-shadow: 0 0 20px #ff4081; }
+      100% { transform: scale(1.08); box-shadow: 0 0 40px #e040fb; }
+    }
+    .avatar {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #222;
+    }
+    .status-card {
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 18px;
+      padding: 16px 20px;
+      max-width: 90%;
+      min-width: 260px;
+      font-size: 16px;
+      line-height: 1.5;
+      color: #f1f1f1;
+      min-height: 54px;
+      backdrop-filter: blur(8px);
+    }
+    .input-bar {
+      padding: 16px;
+      display: flex;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+    }
+    .input-bar input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 30px;
+      padding: 12px 18px;
+      color: white;
+      font-size: 15px;
+      outline: none;
+    }
+    .input-bar button {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      transition: 0.2s;
+    }
+    .send-btn {
+      background: #ff4081;
+    }
+    .mic-btn {
+      background: #7c4dff;
+    }
+    .mic-btn.listening {
+      background: #f44336;
+      animation: micPulse 1s infinite alternate;
+    }
+    @keyframes micPulse {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.12); }
+    }
+    /* Settings Popup */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 99;
+    }
+    .modal-box {
+      background: #1a162b;
+      padding: 24px;
+      border-radius: 16px;
+      width: 85%;
+      max-width: 380px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .modal-box h3 { margin-bottom: 12px; }
+    .modal-box input {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      margin-bottom: 16px;
+      outline: none;
+    }
+    .modal-box button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      background: #ff4081;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>ANNU AI</h1>
+    <button class="gear-btn" onclick="openSettings()">⚙️</button>
+  </header>
+
+  <div class="main-content">
+    <div class="avatar-wrapper" id="avatarWrapper">
+      <img class="avatar" src="https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1080&auto=format&fit=crop" alt="Annu">
+    </div>
+    <div class="status-card" id="statusText">नमस्ते dost! मैं अन्नू हूँ। बताओ आज क्या बात करनी है? ❤️</div>
+  </div>
+
+  <div class="input-bar">
+    <input type="text" id="userInput" placeholder="अन्नू से बात करें...">
+    <button class="send-btn" onclick="handleSend()">➤</button>
+    <button class="mic-btn" id="micBtn" onclick="toggleVoice()">🎤</button>
+  </div>
+
+  <div class="modal" id="settingsModal">
+    <div class="modal-box">
+      <h3>Gemini API Key</h3>
+      <input type="text" id="keyInput" placeholder="अपनी API Key पेस्ट करें">
+      <button onclick="saveKey()">Save Key</button>
+    </div>
+  </div>
+    <script>
+    // डिफ़ॉल्ट Key पहले से सेट है
+    let apiKey = localStorage.getItem("annu_key") || "AQ.Ab8RN46Je0MB0a7Vc8RsNcJ51ENDBds0hbeRFZ6TzOP45NUDO4A";
+    let isListening = false;
+
+    const statusEl = document.getElementById("statusText");
+    const avatarEl = document.getElementById("avatarWrapper");
+    const micBtn = document.getElementById("micBtn");
+
+    // 1. Text To Speech (लड़की जैसी आवाज़)
+    function speak(text) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "hi-IN";
+      utterance.pitch = 1.35;
+      utterance.rate = 0.95;
+
+      const voices = window.speechSynthesis.getVoices();
+      const femaleVoice = voices.find(v => v.lang.includes("hi") && (v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("google")));
+      if (femaleVoice) utterance.voice = femaleVoice;
+
+      utterance.onstart = () => avatarEl.classList.add("speaking");
+      utterance.onend = () => avatarEl.classList.remove("speaking");
+      utterance.onerror = () => avatarEl.classList.remove("speaking");
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // 2. Speech Recognition (माइक से सुनना)
+    let recognition;
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRec();
+      recognition.lang = 'hi-IN';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        isListening = true;
+        micBtn.classList.add("listening");
+        statusEl.innerText = "सुन रही हूँ...";
+      };
+
+      recognition.onresult = (e) => {
+        const text = e.results[0][0].transcript;
+        statusEl.innerText = text;
+        askGemini(text);
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        micBtn.classList.remove("listening");
+      };
+
+      recognition.onerror = () => {
+        isListening = false;
+        micBtn.classList.remove("listening");
+        statusEl.innerText = "आवाज़ समझ नहीं आई, फिर से बोलें!";
+      };
+    }
+
+    function toggleVoice() {
+      if (!recognition) {
+        alert("आपका ब्राउज़र वॉइस सपोर्ट नहीं करता। कृपया Chrome का उपयोग करें।");
+        return;
+      }
+      if (isListening) {
+        recognition.stop();
+      } else {
+        recognition.start();
+      }
+    }
+
+    function handleSend() {
+      const input = document.getElementById("userInput");
+      const val = input.value.trim();
+      if (!val) return;
+      input.value = "";
+      statusEl.innerText = val;
+      askGemini(val);
+    }
+
+    document.getElementById("userInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") handleSend();
+    });
+
+    // 3. Gemini API कनेक्शन
+    async function askGemini(text) {
+      if (!apiKey) {
+        statusEl.innerText = "कृपया पहले ऊपर ⚙️ में अपनी API Key डालें!";
+        openSettings();
+        return;
+      }
+
+      statusEl.innerText = "अन्नू सोच रही है...";
+
+      try {
+        const prompt = `तुम्हारा नाम अन्नू है। तुम एक बेहद क्यूट, प्यारी और केयरिंग दोस्त हो। यूजर से हिंदी या हिंग्लिश में 'dost' कहकर 1-2 छोटे और प्यारे वाक्यों में जवाब दो: ${text}`;
+        
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        });
+
+        const data = await res.json();
+        if (data.error) {
+          statusEl.innerText = "Error: " + data.error.message;
+          return;
+        }
+
+        const reply = data.candidates[0].content.parts[0].text;
+        statusEl.innerText = reply;
+        speak(reply);
+      } catch (err) {
+        statusEl.innerText = "नेटवर्क में समस्या आई! दोबारा प्रयास करें।";
+      }
+    }
+
+    // 4. Settings
+    function openSettings() {
+      document.getElementById("keyInput").value = apiKey;
+      document.getElementById("settingsModal").style.display = "flex";
+    }
+
+    function saveKey() {
+      apiKey = document.getElementById("keyInput").value.trim();
+      localStorage.setItem("annu_key", apiKey);
+      document.getElementById("settingsModal").style.display = "none";
+      statusEl.innerText = "Key सेव हो गई! अब बात करें।";
+    }
+
+    window.onclick = function(e) {
+      if (e.target === document.getElementById("settingsModal")) {
+        document.getElementById("settingsModal").style.display = "none";
+      }
+    }
+  </script>
+</body>
+</html>

@@ -87,6 +87,7 @@
       color: #f1f1f1;
       min-height: 54px;
       backdrop-filter: blur(8px);
+      word-break: break-word;
     }
     .input-bar {
       padding: 16px;
@@ -198,7 +199,7 @@
   </div>
     <script>
     // 👇👇 यहाँ अपनी gsk_ वाली Key को "" के अंदर पेस्ट कर दें 👇👇
-    let hardcodedKey = "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";
+    let hardcodedKey = "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";
     
     let apiKey = localStorage.getItem("annu_key") || hardcodedKey;
     let isListening = false;
@@ -286,7 +287,7 @@
       if (e.key === "Enter") handleSend();
     });
 
-    // 3. Groq API Connection with Auto-Fallback
+    // 3. Groq API Connection (Live Error Tracking)
     async function askGroq(text) {
       const activeKey = apiKey && apiKey !== "YAHAN_APNI_gsk_KEY_PEST_KAREIN" ? apiKey.trim() : "";
       
@@ -300,11 +301,11 @@
 
       const modelsToTry = [
         "llama-3.1-8b-instant",
-        "llama-3.3-70b-versatile",
-        "mixtral-8x7b-32768"
+        "llama-3.3-70b-versatile"
       ];
 
       let replySuccess = false;
+      let lastErrorMessage = "";
 
       for (const curModel of modelsToTry) {
         try {
@@ -319,7 +320,7 @@
               messages: [
                 {
                   role: "system",
-                  content: "तुम्हारा नाम अन्नू है। तुम एक बेहद क्यूट, प्यारी और केयरिंग दोस्त हो। यूजर से हिंदी में 'dost' कहकर 1-2 छोटे और मीठे वाक्यों में जवाब दो।"
+                  content: "तुम्हारा नाम अन्नू है। तुम एक बेहद प्यारी और केयरिंग दोस्त हो। यूजर से हिंदी में 'dost' कहकर 1-2 छोटे और मीठे वाक्यों में जवाब दो।"
                 },
                 {
                   role: "user",
@@ -338,14 +339,16 @@
             speak(reply);
             replySuccess = true;
             break;
+          } else if (data.error) {
+            lastErrorMessage = data.error.message;
           }
         } catch (e) {
-          // अगला मॉडल ट्राई करेगा
+          lastErrorMessage = e.message;
         }
       }
 
       if (!replySuccess) {
-        statusEl.innerText = "कनेक्शन में समस्या आई! कृपया ⚙️ में Key चेक करें।";
+        statusEl.innerText = lastErrorMessage ? "Groq: " + lastErrorMessage : "कनेक्शन में समस्या आई! कृपया Key चेक करें।";
       }
     }
 
@@ -373,4 +376,3 @@
   </script>
 </body>
 </html>
-

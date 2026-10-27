@@ -192,12 +192,12 @@
   <div class="modal" id="settingsModal">
     <div class="modal-box">
       <h3>Groq API Key</h3>
-      <input type="text" id="keyInput" placeholder="gsk_ wali key dalein">
+      <input type="text" id="keyInput" placeholder="gsk_ वाली Key डालें">
       <button onclick="saveKey()">Save Key</button>
     </div>
   </div>
     <script>
-    // 👇👇 YAHAN APNI gsk_ WALI KEY QUOTES KE ANDAR PASTE KAR DO 👇👇
+    // 👇👇 यहाँ अपनी gsk_ वाली Key को "" के अंदर पेस्ट कर दें 👇👇
     let hardcodedKey = "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";
     
     let apiKey = localStorage.getItem("annu_key") || hardcodedKey;
@@ -263,7 +263,7 @@
 
     function toggleVoice() {
       if (!recognition) {
-        alert("Aapka browser voice support nahi karta. Chrome use karein.");
+        alert("आपका ब्राउज़र वॉइस सपोर्ट नहीं करता। Chrome इस्तेमाल करें।");
         return;
       }
       if (isListening) {
@@ -286,57 +286,66 @@
       if (e.key === "Enter") handleSend();
     });
 
-    // 3. Groq API Connection
+    // 3. Groq API Connection with Auto-Fallback
     async function askGroq(text) {
       const activeKey = apiKey && apiKey !== "YAHAN_APNI_gsk_KEY_PEST_KAREIN" ? apiKey.trim() : "";
       
       if (!activeKey) {
-        statusEl.innerText = "Kripya upar ⚙️ settings me apni Groq Key dalein!";
+        statusEl.innerText = "कृपया ऊपर ⚙️ सेटिंग्स में अपनी Groq Key डालें!";
         openSettings();
         return;
       }
 
       statusEl.innerText = "अन्नू सोच रही है...";
 
-      try {
-        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${activeKey}`
-          },
-          body: JSON.stringify({
-            model: "llama-3.1-8b-instant",
-            
-            
-            
-            
-            messages: [
-              {
-                role: "system",
-                content: "तुम्हारा नाम अन्नू है। तुम एक बेहद क्यूट, प्यारी और केयरिंग दोस्त हो। यूजर से हिंदी में 'dost' कहकर 1-2 छोटे और मीठे वाक्यों में जवाब दो।"
-              },
-              {
-                role: "user",
-                content: text
-              }
-            ],
-            temperature: 0.7,
-            max_tokens: 150
-          })
-        });
+      const modelsToTry = [
+        "llama-3.1-8b-instant",
+        "llama-3.3-70b-versatile",
+        "mixtral-8x7b-32768"
+      ];
 
-        const data = await res.json();
-        if (data.error) {
-          statusEl.innerText = "Error: " + data.error.message;
-          return;
+      let replySuccess = false;
+
+      for (const curModel of modelsToTry) {
+        try {
+          const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${activeKey}`
+            },
+            body: JSON.stringify({
+              model: curModel,
+              messages: [
+                {
+                  role: "system",
+                  content: "तुम्हारा नाम अन्नू है। तुम एक बेहद क्यूट, प्यारी और केयरिंग दोस्त हो। यूजर से हिंदी में 'dost' कहकर 1-2 छोटे और मीठे वाक्यों में जवाब दो।"
+                },
+                {
+                  role: "user",
+                  content: text
+                }
+              ],
+              temperature: 0.7,
+              max_tokens: 150
+            })
+          });
+
+          const data = await res.json();
+          if (data.choices && data.choices[0]) {
+            const reply = data.choices[0].message.content;
+            statusEl.innerText = reply;
+            speak(reply);
+            replySuccess = true;
+            break;
+          }
+        } catch (e) {
+          // अगला मॉडल ट्राई करेगा
         }
+      }
 
-        const reply = data.choices[0].message.content;
-        statusEl.innerText = reply;
-        speak(reply);
-      } catch (err) {
-        statusEl.innerText = "Network me dikkat aayi! Dobara koshish karein.";
+      if (!replySuccess) {
+        statusEl.innerText = "कनेक्शन में समस्या आई! कृपया ⚙️ में Key चेक करें।";
       }
     }
 
@@ -351,7 +360,7 @@
       if (inputVal) {
         apiKey = inputVal;
         localStorage.setItem("annu_key", apiKey);
-        statusEl.innerText = "Key save ho gayi! Ab baat karein.";
+        statusEl.innerText = "Key सेव हो गई! अब बात करें।";
       }
       document.getElementById("settingsModal").style.display = "none";
     }
@@ -364,3 +373,4 @@
   </script>
 </body>
 </html>
+
